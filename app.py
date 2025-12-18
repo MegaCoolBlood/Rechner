@@ -8,6 +8,48 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 
+class Tooltip:
+    """Create a tooltip for a Tkinter widget."""
+    
+    def __init__(self, widget, text: str):
+        self.widget = widget
+        self.text = text
+        self.tooltip = None
+        widget.bind("<Enter>", self._show_tooltip)
+        widget.bind("<Leave>", self._hide_tooltip)
+    
+    def _show_tooltip(self, event):
+        if self.tooltip:
+            return
+        
+        # Get widget position
+        x = self.widget.winfo_rootx() + self.widget.winfo_width() // 2
+        y = self.widget.winfo_rooty() - 25
+        
+        # Create tooltip window
+        self.tooltip = tk.Toplevel(self.widget)
+        self.tooltip.wm_overrideredirect(True)
+        self.tooltip.wm_geometry(f"+{x}+{y}")
+        
+        label = tk.Label(
+            self.tooltip,
+            text=self.text,
+            bg="#333333",
+            fg="#e2e8f0",
+            font=("Segoe UI", 9),
+            padx=6,
+            pady=3,
+            relief="solid",
+            bd=1,
+        )
+        label.pack()
+    
+    def _hide_tooltip(self, event):
+        if self.tooltip:
+            self.tooltip.destroy()
+            self.tooltip = None
+
+
 class SafeEvaluator:
     """Evaluates math expressions using AST to avoid executing arbitrary code."""
 
@@ -51,7 +93,7 @@ class CalculatorApp:
     def __init__(self) -> None:
         self.root = tk.Tk()
         self.root.title("Rechner")
-        self.root.overrideredirect(True)  # custom titlebar
+        self.root.overrideredirect(False)  # Show in taskbar
         self.root.resizable(True, True)
         self.root.grid_rowconfigure(1, weight=1)
         self.root.grid_columnconfigure(0, weight=1)
@@ -84,9 +126,9 @@ class CalculatorApp:
         self.live_result_var = tk.StringVar(value="")
         self.history: list[tuple[str, str]] = []  # (expression, result_string)
         self.normal_geometry = ""
-        self._build_titlebar()
         self._build_ui()
         self._bind_keys()
+        self._center_window()
 
     def _build_ui(self) -> None:
         container = tk.Frame(self.root, padx=16, pady=16, bg=self.colors["bg"])
@@ -97,7 +139,7 @@ class CalculatorApp:
 
         calc_frame = tk.Frame(container, bg=self.colors["panel"], bd=0, highlightthickness=0)
         calc_frame.grid(row=0, column=0, sticky="nsew")
-        for i in range(4):
+        for i in range(5):
             calc_frame.grid_columnconfigure(i, weight=1)
 
         display = tk.Text(
@@ -135,43 +177,46 @@ class CalculatorApp:
 
         buttons = [
             [
-                ("C", self.clear),
-                ("←", self.backspace),
-                ("(", lambda: self.append("(")),
-                (")", lambda: self.append(")")),
+                ("⎘", self.copy_expression, "Ausdruck kopieren"),
+                ("📋", self.copy_result, "Ergebnis kopieren"),
+                ("C", self.clear, "Löschen"),
+                ("⌫", self.backspace, "Rückwärts"),
             ],
             [
-                ("1/x", self.apply_reciprocal),
-                ("√", self.apply_sqrt),
-                ("x²", self.apply_square),
-                ("%", self.apply_percent),
+                ("¹⁄ₓ", self.apply_reciprocal, "Kehrwert (1/x)"),
+                ("%", self.apply_percent, "Prozent"),
+                ("(", lambda: self.append("("), "Klammer auf"),
+                (")", lambda: self.append(")"), "Klammer zu"),
             ],
             [
-                ("7", lambda: self.append("7")),
-                ("8", lambda: self.append("8")),
-                ("9", lambda: self.append("9")),
-                ("/", lambda: self.append("/")),
+                ("ˣʸ", lambda: self.append("**"), "Potenz (x^y)"),
+                ("ˣ²", self.apply_square, "Quadrat"),
+                ("√", self.apply_sqrt, "Quadratwurzel"),
+                ("/", lambda: self.append("/"), "Division"),
             ],
             [
-                ("4", lambda: self.append("4")),
-                ("5", lambda: self.append("5")),
-                ("6", lambda: self.append("6")),
-                ("*", lambda: self.append("*")),
+                ("7", lambda: self.append("7"), "Ziffer 7"),
+                ("8", lambda: self.append("8"), "Ziffer 8"),
+                ("9", lambda: self.append("9"), "Ziffer 9"),
+                ("×", lambda: self.append("*"), "Multiplikation"),
             ],
             [
-                ("1", lambda: self.append("1")),
-                ("2", lambda: self.append("2")),
-                ("3", lambda: self.append("3")),
-                ("-", lambda: self.append("-")),
+                ("4", lambda: self.append("4"), "Ziffer 4"),
+                ("5", lambda: self.append("5"), "Ziffer 5"),
+                ("6", lambda: self.append("6"), "Ziffer 6"),
+                ("−", lambda: self.append("-"), "Subtraktion"),
             ],
             [
-                ("±", self.negate),
-                ("0", lambda: self.append("0")),
-                (",", lambda: self.append(",")),
-                ("+", lambda: self.append("+")),
+                ("1", lambda: self.append("1"), "Ziffer 1"),
+                ("2", lambda: self.append("2"), "Ziffer 2"),
+                ("3", lambda: self.append("3"), "Ziffer 3"),
+                ("+", lambda: self.append("+"), "Addition"),
             ],
             [
-                ("=", self.evaluate),
+                ("±", self.negate, "Vorzeichen ändern"),
+                ("0", lambda: self.append("0"), "Ziffer 0"),
+                (".", lambda: self.append(","), "Dezimaltrennzeichen"),
+                ("=", self.evaluate, "Berechnen"),
             ],
         ]
 
@@ -190,17 +235,18 @@ class CalculatorApp:
         }
 
         for r, row in enumerate(buttons, start=2):
-            for c, (label, command) in enumerate(row):
-                colspan = 4 if label == "=" else 1
+            for c, (label, command, tooltip_text) in enumerate(row):
                 btn_style = dict(common_btn)
                 if label == "=":
                     btn_style["bg"] = self.colors["accent"]
                     btn_style["fg"] = self.colors["btn_active_fg"]
                     btn_style["activebackground"] = self.colors["btn_active"]
+                elif label in "0123456789":
+                    # Make number buttons lighter
+                    btn_style["bg"] = "#374151"
                 btn = tk.Button(calc_frame, text=label, command=command, **btn_style)
-                btn.grid(row=r, column=c, columnspan=colspan, sticky="nsew", padx=2, pady=2)
-                if label == "=":
-                    break
+                btn.grid(row=r, column=c, sticky="nsew", padx=2, pady=2)
+                Tooltip(btn, tooltip_text)
 
         for i in range(len(buttons) + 2):
             calc_frame.grid_rowconfigure(i, weight=1)
@@ -263,9 +309,6 @@ class CalculatorApp:
         self.root.bind("<Delete>", self._handle_clear)
         self.root.bind("<Escape>", self._handle_clear)
         # Drag and titlebar actions
-        self.titlebar.bind("<ButtonPress-1>", self._start_move)
-        self.titlebar.bind("<B1-Motion>", self._on_move)
-        self.titlebar.bind("<Double-Button-1>", self._toggle_maximize)
 
     def append(self, value: str) -> None:
         current = self._get_display()
@@ -316,6 +359,25 @@ class CalculatorApp:
 
     def apply_percent(self) -> None:
         self._apply_unary(lambda x: x / 100)
+
+    def copy_expression(self) -> None:
+        """Copy the current expression to clipboard."""
+        expression = self._get_display().strip()
+        if expression:
+            self.root.clipboard_clear()
+            self.root.clipboard_append(expression)
+
+    def copy_result(self) -> None:
+        """Copy the current result (live result) to clipboard."""
+        expression = self._get_display().strip()
+        if expression:
+            try:
+                result = SafeEvaluator.evaluate(expression)
+                result_str = self._format_number(result)
+                self.root.clipboard_clear()
+                self.root.clipboard_append(result_str)
+            except Exception:
+                messagebox.showerror("Fehler", "Ergebnis konnte nicht kopiert werden")
 
     def _get_display(self) -> str:
         return self.display.get("1.0", "end-1c")
@@ -434,6 +496,23 @@ class CalculatorApp:
         grip.grid(row=2, column=0, sticky="se")
         grip.bind("<B1-Motion>", self._resize_from_grip)
 
+    def _center_window(self) -> None:
+        """Center window on screen with 30% wider default size."""
+        self.root.update_idletasks()
+        screen_w = self.root.winfo_screenwidth()
+        screen_h = self.root.winfo_screenheight()
+        
+        # Default calculator width and height, then make it 30% wider
+        base_w = 600
+        base_h = 650
+        window_w = int(base_w * 1.3)
+        window_h = base_h
+        
+        x = (screen_w - window_w) // 2
+        y = (screen_h - window_h) // 2
+        
+        self.root.geometry(f"{window_w}x{window_h}+{x}+{y}")
+
     def _apply_dark_titlebar(self) -> None:
         """Try to apply a dark titlebar on Windows 10/11 to match the theme."""
         try:
@@ -460,53 +539,15 @@ class CalculatorApp:
             # Best-effort: ignore if unavailable
             pass
 
-    def _start_move(self, event) -> None:
-        self._drag_offset = (event.x_root, event.y_root, self.root.winfo_x(), self.root.winfo_y())
-
-    def _on_move(self, event) -> None:
-        if not self._drag_offset or self.is_maximized:
-            return
-        dx = event.x_root - self._drag_offset[0]
-        dy = event.y_root - self._drag_offset[1]
-        new_x = self._drag_offset[2] + dx
-        new_y = self._drag_offset[3] + dy
-        self.root.geometry(f"+{new_x}+{new_y}")
-
-    def _toggle_maximize(self, event=None) -> None:  # noqa: D401
-        if self.is_maximized:
-            self.root.geometry(self.normal_geometry or "800x500+100+100")
-            self.is_maximized = False
-        else:
-            self.normal_geometry = self.root.geometry()
-            w = self.root.winfo_screenwidth()
-            h = self.root.winfo_screenheight()
-            self.root.geometry(f"{w}x{h}+0+0")
-            self.is_maximized = True
-
-    def _do_minimize(self) -> None:
-        self.root.update_idletasks()
-        self.root.overrideredirect(False)
-        self.root.iconify()
-        self.root.after(10, lambda: self.root.overrideredirect(True))
-
-    def _do_close(self) -> None:
-        self.root.destroy()
-
-    def _resize_from_grip(self, event) -> None:
-        if self.is_maximized:
-            return
-        x = self.root.winfo_pointerx() - self.root.winfo_rootx()
-        y = self.root.winfo_pointery() - self.root.winfo_rooty()
-        new_w = max(400, x)
-        new_h = max(400, y)
-        self.root.geometry(f"{new_w}x{new_h}")
-
     def _handle_key(self, event) -> None:
         if event.char in "0123456789,+-*/()":
             self.append(event.char)
             return "break"
         if event.char == ".":
             self.append(",")
+            return "break"
+        if event.char == "^":
+            self.append("**")
             return "break"
 
     def _handle_return(self, event) -> str:
