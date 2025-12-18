@@ -1,6 +1,6 @@
 # Rechner
 
-Ein schlanker Desktop-Taschenrechner (Tkinter) als Alternative zum Windows-Standardrechner. Unterstützt Grundrechenarten, Klammern, Vorzeichenwechsel, Backspace, Tastatursteuerung sowie eine klickbare Verlaufsliste. Ergebnisse werden mit Leerzeichen als Tausender-Trenner und Komma als Dezimaltrennzeichen formatiert. Zusatzfunktionen: Wurzel, Kehrwert (1/x), Quadrat (x²) und Prozent. Das Fenster ist frei skalierbar, die UI füllt den verfügbaren Platz und nutzt einen modernen Dark-Look mit Akzentfarbe (eigene Titelbar und dunkle Scrollbar). Lange Ausdrücke werden im Display automatisch über mehrere Zeilen umbrochen, und unter dem Display wird live das Ergebnis des aktuellen Ausdrucks gezeigt.
+Ein schlanker Desktop-Taschenrechner (Tkinter) als Alternative zum Windows-Standardrechner. Unterstützt Grundrechenarten, Klammern, Vorzeichenwechsel, Backspace, Tastatursteuerung sowie eine klickbare Verlaufsliste. Ergebnisse werden mit Leerzeichen als Tausender-Trenner und Komma als Dezimaltrennzeichen formatiert. Zusatzfunktionen: Wurzel, Kehrwert (1/x), Quadrat (x²), Potenz (x^y) und Prozent. Das Fenster ist frei skalierbar, die UI füllt den verfügbaren Platz und nutzt einen modernen Dark-Look mit Akzentfarbe (eigene Titelbar und dunkle Scrollbar). Lange Ausdrücke werden im Display automatisch über mehrere Zeilen umbrochen, und unter dem Display wird live das Ergebnis des aktuellen Ausdrucks gezeigt.
 
 ## Voraussetzungen
 - Python 3.10+ (Standardbibliothek, keine Zusatzpakete nötig)
